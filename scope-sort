@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# scope-sort: DNS-style domain sorter with optional right-justification
+
+show_help() {
+    echo "Usage: scope-sort <filename> [--rj true|false]"
+    echo
+    echo "Options:"
+    echo "  --rj    Enable or disable right-justification (default: true)"
+    exit 0
+}
+
+# Default values
+rj="true"
+
+# Argument parsing
+if [ "$#" -lt 1 ]; then
+    show_help
+fi
+
+filename=""
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+        --rj)
+            rj="$2"
+            shift 2
+            ;;
+        -h|--help)
+            show_help
+            ;;
+        *)
+            filename="$1"
+            shift
+            ;;
+    esac
+done
+
+# Check if file exists
+if [ ! -f "$filename" ]; then
+    echo "File not found: $filename"
+    exit 1
+fi
+
+# Sort logic
+sorted=$(grep -v '^$' "$filename" | \
+awk '{ cmd = "echo " $0 " | rev"; cmd | getline rev; close(cmd); print $0, rev }' | \
+awk '{print $1, $2}' | \
+sort -k2 | \
+awk '{print $1}')
+
+# Print output
+if [ "$rj" == "true" ]; then
+    width=$(tput cols)
+    echo "$sorted" | awk -v width="$width" '{ printf "%"width"s\n", $0 }'
+else
+    echo "$sorted"
+fi
